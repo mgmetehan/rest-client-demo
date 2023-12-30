@@ -6,7 +6,9 @@ import com.mgmetehan.restclientdemo.dto.response.UserDataResponse;
 import com.mgmetehan.restclientdemo.dto.response.UserResponse;
 import com.mgmetehan.restclientdemo.dto.response.UserUpdateResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -19,14 +21,17 @@ public class UserService {
         return restClient.get()
                 .uri("/users?page={page}", page)
                 .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    throw new RuntimeException("4xx error");
+                })
                 .body(UserResponse.class);
     }
 
-    public UserDataResponse getSingleUser(int id) {
+    public ResponseEntity<UserDataResponse> getSingleUser(int id) {
         return restClient.get()
                 .uri("/users/{id}", id)
                 .retrieve()
-                .body(UserDataResponse.class);
+                .toEntity(UserDataResponse.class);
     }
 
     public UserCreateResponse createUser(UserRequest request) {
