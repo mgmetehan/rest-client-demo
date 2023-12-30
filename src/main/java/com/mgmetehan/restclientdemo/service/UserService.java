@@ -20,11 +20,18 @@ public class UserService {
     public UserResponse getListUsers(int page) {
         return restClient.get()
                 .uri("/users?page={page}", page)
-                .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
-                    throw new RuntimeException("4xx error");
-                })
-                .body(UserResponse.class);
+                .exchange((request, response) -> {
+                    if (response.getStatusCode().is5xxServerError()) {
+                        throw new RuntimeException(response.getStatusCode().toString());
+                    } else {
+                        return UserResponse.builder()
+                                .page(0)
+                                .perPage(0)
+                                .total(0)
+                                .totalPages(0)
+                                .build();
+                    }
+                });
     }
 
     public ResponseEntity<UserDataResponse> getSingleUser(int id) {
@@ -38,6 +45,7 @@ public class UserService {
         return restClient.post()
                 .uri("/users")
                 .contentType(MediaType.APPLICATION_JSON)
+                //.header("Content-Type", "application/json")
                 .body(request)
                 .retrieve()
                 .body(UserCreateResponse.class);
@@ -49,6 +57,9 @@ public class UserService {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (req, response) -> {
+                    throw new RuntimeException("4xx error");
+                })
                 .body(UserUpdateResponse.class);
     }
 
